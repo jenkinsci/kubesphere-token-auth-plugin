@@ -8,6 +8,7 @@ import jenkins.security.BasicHeaderAuthenticator;
 import jenkins.security.SecurityListener;
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.springframework.dao.DataAccessException;
@@ -29,17 +30,21 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
     @Override
     public Authentication authenticate(HttpServletRequest req, HttpServletResponse rsp, String username, String password) throws ServletException {
         // attempt to authenticate as API token
-        User u = User.getById(username, true);
+        User u = User.getById(username, false);
         if (!KubesphereTokenAuthGlobalConfiguration.get().isEnabled()){
             return null;
         }
+        if (u == null){
+            return null;
+        }
+
         try {
             KubesphereTokenReviewResponse reviewResponse = getReviewResponse(username,password);
             if (reviewResponse.getStatus().getAuthenticated() && reviewResponse.getStatus().getUser().getUsername().equals(username)){
                 Authentication auth;
                 try {
                     UserDetails userDetails = u.getUserDetailsForImpersonation();
-                    auth = u.impersonate(userDetails);
+                    auth = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), "", userDetails.getAuthorities());
 
                     SecurityListener.fireAuthenticated(userDetails);
 
@@ -106,6 +111,7 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
     }
 
     private static KubesphereTokenReviewResponse getReviewResponseFromApiServer(String username,String token) throws IOException{
+
         OkHttpClient client = new OkHttpClient();
         client.setConnectTimeout(30, TimeUnit.SECONDS);
         client.setReadTimeout(60, TimeUnit.SECONDS);
