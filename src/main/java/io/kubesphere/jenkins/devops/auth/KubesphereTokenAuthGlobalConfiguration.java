@@ -27,13 +27,13 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
 
     private CacheConfiguration cacheConfiguration;
 
-    public transient Map<String,CacheEntry<String>> tokenAuthCache = null;
+    private transient Map<String, CacheEntry<KubesphereTokenReviewResponse>> tokenAuthCache = null;
 
     public static KubesphereTokenAuthGlobalConfiguration get() {
         return GlobalConfiguration.all().get(KubesphereTokenAuthGlobalConfiguration.class);
     }
 
-    private static class CacheEntry<T> {
+    public static class CacheEntry<T> {
         private final long expires;
         private final T value;
 
@@ -58,7 +58,7 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
      * @param <K> Key type
      * @param <V> Cache entry type
      */
-    private static class CacheMap<K, V> extends LinkedHashMap<K, CacheEntry<V>> {
+    public static class CacheMap<K, V> extends LinkedHashMap<K, CacheEntry<V>> {
 
         private int cacheSize;
 
@@ -79,6 +79,14 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
         protected boolean removeEldestEntry(Map.Entry<K, CacheEntry<V>> eldest) {
             return size() > cacheSize || eldest.getValue() == null || !eldest.getValue().isValid();
         }
+    }
+
+    public Map<String, CacheEntry<KubesphereTokenReviewResponse>> getTokenAuthCache() {
+        return tokenAuthCache;
+    }
+
+    public void setTokenAuthCache(Map<String, CacheEntry<KubesphereTokenReviewResponse>> tokenAuthCache) {
+        this.tokenAuthCache = tokenAuthCache;
     }
 
     @Override

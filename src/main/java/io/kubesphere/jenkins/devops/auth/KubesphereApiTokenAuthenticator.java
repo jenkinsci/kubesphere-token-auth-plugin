@@ -15,8 +15,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -35,26 +33,9 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
         if (!KubesphereTokenAuthGlobalConfiguration.get().isEnabled()){
             return null;
         }
-
         try {
-            OkHttpClient client = new OkHttpClient();
-            client.setConnectTimeout(30, TimeUnit.SECONDS);
-            client.setReadTimeout(60, TimeUnit.SECONDS);
-            Request.Builder builder = new Request.Builder();
-            builder.url(KubesphereTokenAuthGlobalConfiguration.get().getServer()+"apis/account.kubesphere.io/v1alpha1/authenticate");
-            Map<String,Object> token = new HashMap<>();
-            token.put("token",password);
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("apiVersion","authentication.k8s.io/v1beta1");
-            jsonObject.put("kind","TokenReview");
-            jsonObject.put("spec",token);
-            builder.post(RequestBody.create(JSON,jsonObject.toString()));
-            Response response = client.newCall(builder.build()).execute();
-            JSONObject responseObject = JSONObject.fromObject(response.body().string());
-            JSONObject status = (JSONObject)(responseObject.get("status"));
-            JSONObject user = (JSONObject) status.get("user");
-
-            if (status.getBoolean("authenticated") && user.getString("username").equals(username)){
+            KubesphereTokenReviewResponse reviewResponse = getReviewResponse(username,password);
+            if (reviewResponse.getStatus().getAuthenticated() && reviewResponse.getStatus().getUser().getUsername().equals(username)){
                 Authentication auth;
                 try {
                     UserDetails userDetails = u.getUserDetailsForImpersonation();
@@ -77,6 +58,67 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
             return null;
         }
         return null;
+    }
+
+    private static KubesphereTokenReviewResponse getReviewResponse(String username,String token) throws IOException{
+        KubesphereTokenAuthGlobalConfiguration authGlobalConfiguration = KubesphereTokenAuthGlobalConfiguration.get();
+        if (authGlobalConfiguration.getCacheConfiguration() != null){
+            synchronized (authGlobalConfiguration){
+                Map<String, KubesphereTokenAuthGlobalConfiguration.CacheEntry<KubesphereTokenReviewResponse>>
+                        tokenCache = authGlobalConfiguration.getTokenAuthCache();
+                if (tokenCache == null){
+                    authGlobalConfiguration.setTokenAuthCache(
+                            new KubesphereTokenAuthGlobalConfiguration.CacheMap<>(
+                                    authGlobalConfiguration.getCacheConfiguration().getSize()));
+                }else {
+                    if (((KubesphereTokenAuthGlobalConfiguration.CacheMap)tokenCache).getCacheSize()
+                            != authGlobalConfiguration.getCacheConfiguration().getSize()){
+                        ((KubesphereTokenAuthGlobalConfiguration.CacheMap)tokenCache).setCacheSize(
+                                authGlobalConfiguration.getCacheConfiguration().getSize());
+                    }
+                    final KubesphereTokenAuthGlobalConfiguration.CacheEntry<KubesphereTokenReviewResponse> cached;
+                        cached = tokenCache.get(username);
+
+                    if (cached != null && cached.isValid() && cached.getValue().getToken().equals(token)){
+                        return cached.getValue();
+                    }
+                }
+            }
+            KubesphereTokenReviewResponse reviewResponse = getReviewResponseFromApiServer(username, token);
+            if (reviewResponse.getStatus().getAuthenticated() && (reviewResponse.getStatus().getUser().getUsername().equals(username))){
+                synchronized (authGlobalConfiguration){
+                    Map<String, KubesphereTokenAuthGlobalConfiguration.CacheEntry<KubesphereTokenReviewResponse>>
+                            tokenCache = authGlobalConfiguration.getTokenAuthCache();
+                    if (tokenCache.containsKey(username)){
+                        tokenCache.replace(username,new KubesphereTokenAuthGlobalConfiguration.CacheEntry<>(
+                                authGlobalConfiguration.getCacheConfiguration().getTtl(),reviewResponse
+                        ));
+                    }else {
+                        tokenCache.put(username,new KubesphereTokenAuthGlobalConfiguration.CacheEntry<>(
+                                authGlobalConfiguration.getCacheConfiguration().getTtl(),reviewResponse
+                        ));
+                    }
+                }
+            }
+            return reviewResponse;
+        }
+        return getReviewResponseFromApiServer(username,token);
+    }
+
+    private static KubesphereTokenReviewResponse getReviewResponseFromApiServer(String username,String token) throws IOException{
+        OkHttpClient client = new OkHttpClient();
+        client.setConnectTimeout(30, TimeUnit.SECONDS);
+        client.setReadTimeout(60, TimeUnit.SECONDS);
+        Request.Builder builder = new Request.Builder();
+        builder.url(KubesphereTokenAuthGlobalConfiguration.get().getServer()+"apis/account.kubesphere.io/v1alpha1/authenticate");
+        KubesphereTokenReviewRequest reviewRequest = new KubesphereTokenReviewRequest(token);
+        builder.post(RequestBody.create(JSON,JSONObject.fromObject(reviewRequest).toString()));
+        Response response = client.newCall(builder.build()).execute();
+        JSONObject responseObject = JSONObject.fromObject(response.body().string());
+
+        KubesphereTokenReviewResponse reviewResponse = new KubesphereTokenReviewResponse(responseObject,token);
+
+        return reviewResponse;
     }
 
     private static final Logger LOGGER = Logger.getLogger(BasicHeaderApiTokenAuthenticator.class.getName());
