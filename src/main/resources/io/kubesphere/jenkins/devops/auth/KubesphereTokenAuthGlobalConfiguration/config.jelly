@@ -10,4 +10,5 @@
             <f:textbox/>
         </f:entry>
     </f:section>
+    <f:optionalProperty field="cacheConfiguration" title="${%Enable cacheConfiguration}"/>
 </j:jelly>

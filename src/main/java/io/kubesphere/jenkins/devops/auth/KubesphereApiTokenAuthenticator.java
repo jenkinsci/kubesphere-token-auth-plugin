@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -26,6 +27,7 @@ import static java.util.logging.Level.WARNING;
 public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
     public static final MediaType JSON
             = MediaType.parse("application/json; charset=utf-8");
+
     @Override
     public Authentication authenticate(HttpServletRequest req, HttpServletResponse rsp, String username, String password) throws ServletException {
         // attempt to authenticate as API token
@@ -33,12 +35,12 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
         if (!KubesphereTokenAuthGlobalConfiguration.get().isEnabled()){
             return null;
         }
+
         try {
             OkHttpClient client = new OkHttpClient();
             client.setConnectTimeout(30, TimeUnit.SECONDS);
             client.setReadTimeout(60, TimeUnit.SECONDS);
             Request.Builder builder = new Request.Builder();
-
             builder.url(KubesphereTokenAuthGlobalConfiguration.get().getServer()+"apis/account.kubesphere.io/v1alpha1/authenticate");
             Map<String,Object> token = new HashMap<>();
             token.put("token",password);
@@ -79,3 +81,5 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
 
     private static final Logger LOGGER = Logger.getLogger(BasicHeaderApiTokenAuthenticator.class.getName());
 }
+
+
