@@ -10,5 +10,7 @@
             <f:textbox/>
         </f:entry>
     </f:section>
+    <f:validateButton title="Test Connection" method="verifyConnect"
+                      with="server" progress="Testing..."></f:validateButton>
     <f:optionalProperty field="cacheConfiguration" title="${%Enable cacheConfiguration}"/>
 </j:jelly>

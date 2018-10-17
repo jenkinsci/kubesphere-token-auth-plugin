@@ -89,7 +89,8 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
                     }
                 }
             }
-            KubesphereTokenReviewResponse reviewResponse = getReviewResponseFromApiServer(username, token);
+            KubesphereTokenReviewResponse reviewResponse = getReviewResponseFromApiServer(
+                    KubesphereTokenAuthGlobalConfiguration.get().getServerUrl(),username,token);
             if (reviewResponse.getStatus().getAuthenticated() && (reviewResponse.getStatus().getUser().getUsername().equals(username))){
                 synchronized (authGlobalConfiguration){
                     Map<String,CacheEntry<KubesphereTokenReviewResponse>>
@@ -107,19 +108,15 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
             }
             return reviewResponse;
         }
-        return getReviewResponseFromApiServer(username,token);
+        return getReviewResponseFromApiServer(KubesphereTokenAuthGlobalConfiguration.get().getServerUrl(),username,token);
     }
 
-    private static KubesphereTokenReviewResponse getReviewResponseFromApiServer(String username,String token) throws IOException{
+    public static KubesphereTokenReviewResponse getReviewResponseFromApiServer(String baseUrl,String username,String token) throws IOException{
 
         OkHttpClient client = new OkHttpClient();
         client.setConnectTimeout(30, TimeUnit.SECONDS);
         client.setReadTimeout(60, TimeUnit.SECONDS);
         Request.Builder builder = new Request.Builder();
-        String baseUrl = KubesphereTokenAuthGlobalConfiguration.get().getServer();
-        if (!KubesphereTokenAuthGlobalConfiguration.get().getServer().endsWith("/")){
-            baseUrl += "/";
-        }
         builder.url(baseUrl+"apis/account.kubesphere.io/v1alpha1/authenticate");
         KubesphereTokenReviewRequest reviewRequest = new KubesphereTokenReviewRequest(token);
         builder.post(RequestBody.create(JSON,JSONObject.fromObject(reviewRequest).toString()));

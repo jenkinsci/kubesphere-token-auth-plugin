@@ -4,17 +4,18 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
+import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.Nonnull;
-import java.util.LinkedHashMap;
+import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 @Extension
@@ -40,6 +41,22 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
     public void setTokenAuthCache(Map<String, KubesphereApiTokenAuthenticator.CacheEntry<KubesphereTokenReviewResponse>> tokenAuthCache) {
         this.tokenAuthCache = tokenAuthCache;
     }
+
+    public FormValidation doVerifyConnect(@QueryParameter String server) {
+        try {
+            KubesphereTokenReviewResponse reviewResponse = KubesphereApiTokenAuthenticator.
+                    getReviewResponseFromApiServer(serverToUrl(server),"mock","mock");
+            if (reviewResponse.getKind().equals("TokenReview")){
+                return FormValidation.ok(String.format("Connect to %s success.", server));
+            }
+        }catch (IOException e){
+            return FormValidation.error(e,"Connect error");
+        }catch (net.sf.json.JSONException e){
+            return FormValidation.error(e,"Response format error");
+        }
+        return FormValidation.error(String.format("Connect to %s , response format error.", server));
+    }
+
 
     @Override
     @Nonnull
@@ -81,6 +98,21 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
 
     public String getServer() {
         return this.server;
+    }
+
+    public String getServerUrl(){
+        return serverToUrl(this.server);
+    }
+
+    public static String serverToUrl(String server){
+        String serverUrl = server.trim();
+        if (!serverUrl.contains("://")){
+            serverUrl = "http://" + serverUrl;
+        }
+        if (!serverUrl.endsWith("/")){
+            serverUrl += "/";
+        }
+        return serverUrl;
     }
 
 
