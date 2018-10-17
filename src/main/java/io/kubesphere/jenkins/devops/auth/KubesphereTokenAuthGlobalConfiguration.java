@@ -27,65 +27,17 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
 
     private CacheConfiguration cacheConfiguration;
 
-    private transient Map<String, CacheEntry<KubesphereTokenReviewResponse>> tokenAuthCache = null;
+    private transient Map<String, KubesphereApiTokenAuthenticator.CacheEntry<KubesphereTokenReviewResponse>> tokenAuthCache = null;
 
     public static KubesphereTokenAuthGlobalConfiguration get() {
         return GlobalConfiguration.all().get(KubesphereTokenAuthGlobalConfiguration.class);
     }
 
-    public static class CacheEntry<T> {
-        private final long expires;
-        private final T value;
-
-        public CacheEntry(int ttlSeconds, T value) {
-            this.expires = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(ttlSeconds);
-            this.value = value;
-        }
-
-        public T getValue() {
-            return value;
-        }
-
-        public boolean isValid() {
-            return System.currentTimeMillis() < expires;
-        }
-    }
-
-    /**
-     * While we could use Guava's CacheBuilder the method signature changes make using it problematic.
-     * Safer to roll our own and ensure compatibility across as wide a range of Jenkins versions as possible.
-     *
-     * @param <K> Key type
-     * @param <V> Cache entry type
-     */
-    public static class CacheMap<K, V> extends LinkedHashMap<K, CacheEntry<V>> {
-
-        private int cacheSize;
-
-        public CacheMap(int cacheSize) {
-            super(cacheSize + 1); // prevent realloc when hitting cacheConfiguration size limit
-            this.cacheSize = cacheSize;
-        }
-
-        public void setCacheSize(int cacheSize){
-           this.cacheSize = cacheSize;
-        }
-
-        public int getCacheSize(){
-            return this.cacheSize;
-        }
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<K, CacheEntry<V>> eldest) {
-            return size() > cacheSize || eldest.getValue() == null || !eldest.getValue().isValid();
-        }
-    }
-
-    public Map<String, CacheEntry<KubesphereTokenReviewResponse>> getTokenAuthCache() {
+    public Map<String, KubesphereApiTokenAuthenticator.CacheEntry<KubesphereTokenReviewResponse>> getTokenAuthCache() {
         return tokenAuthCache;
     }
 
-    public void setTokenAuthCache(Map<String, CacheEntry<KubesphereTokenReviewResponse>> tokenAuthCache) {
+    public void setTokenAuthCache(Map<String, KubesphereApiTokenAuthenticator.CacheEntry<KubesphereTokenReviewResponse>> tokenAuthCache) {
         this.tokenAuthCache = tokenAuthCache;
     }
 
