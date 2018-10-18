@@ -34,6 +34,17 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
         this.load();
     }
 
+    /**
+     * @deprecated  only for test
+     */
+    @Deprecated
+    public KubesphereTokenAuthGlobalConfiguration(boolean enabled,String server,CacheConfiguration cacheConfiguration){
+        this.enabled = enabled;
+        this.server = server;
+        this.cacheConfiguration = cacheConfiguration;
+    }
+
+
     public static KubesphereTokenAuthGlobalConfiguration get() {
         return GlobalConfiguration.all().get(KubesphereTokenAuthGlobalConfiguration.class);
     }
@@ -50,13 +61,14 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
         try {
             KubesphereTokenReviewResponse reviewResponse = KubesphereApiTokenAuthenticator.
                     getReviewResponseFromApiServer(serverToUrl(server),"mock","mock");
+            if (reviewResponse.getKind() == null){
+                return FormValidation.error("Response format error");
+            }
             if (reviewResponse.getKind().equals("TokenReview")){
                 return FormValidation.ok(String.format("Connect to %s success.", server));
             }
         }catch (IOException e){
             return FormValidation.error(e,"Connect error");
-        }catch (net.sf.json.JSONException e){
-            return FormValidation.error(e,"Response format error");
         }
         return FormValidation.error(String.format("Connect to %s , response format error.", server));
     }
