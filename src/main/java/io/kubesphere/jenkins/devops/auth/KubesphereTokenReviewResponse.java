@@ -11,27 +11,17 @@ public class KubesphereTokenReviewResponse {
 
     private String token;
 
+    public KubesphereTokenReviewResponse(){
+
+    }
 
     public KubesphereTokenReviewResponse(JSONObject jsonObject,String token){
-        this.apiVersion = jsonObject.getString("apiVersion");
-        this.kind = jsonObject.getString("kind");
-        this.token = token;
-
-        TokenStatus status = new TokenStatus();
-
-        JSONObject statusObject = jsonObject.getJSONObject("status");
-
-        status.authenticated = statusObject.getBoolean("authenticated");
-
-        JSONObject userObject = statusObject.getJSONObject("user");
-
-        if (!userObject.isNullObject()){
-            TokenStatus.UserInfo userInfo = new TokenStatus.UserInfo();
-            userInfo.username = userObject.getString("username");
-            userInfo.uid = userObject.getString("uid");
-            status.setUser(userInfo);
-        }
-        this.status = status;
+        KubesphereTokenReviewResponse bean =
+                (KubesphereTokenReviewResponse)JSONObject.toBean(jsonObject,KubesphereTokenReviewResponse.class);
+        this.setToken(token);
+        this.setApiVersion(bean.getApiVersion());
+        this.setKind(bean.getKind());
+        this.setStatus(bean.getStatus());
     }
 
     public void setToken(String token) {

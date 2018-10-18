@@ -1,11 +1,9 @@
 package io.kubesphere.jenkins.devops.auth;
 
 import net.sf.json.JSONObject;
-import net.sf.json.JsonConfig;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 public class KubesphereTokenReviewTest {
 
@@ -24,5 +22,42 @@ public class KubesphereTokenReviewTest {
                 "  }\n" +
                 "}"));
 
+    }
+
+    @Test
+    public void newReviewResponseTest() throws Exception{
+        JSONObject jsonObject1 = JSONObject.fromObject("{\n" +
+                "    \"apiVersion\": \"authentication.k8s.io/v1beta1\",\n" +
+                "    \"kind\": \"TokenReview\",\n" +
+                "    \"status\": {\n" +
+                "        \"authenticated\": true,\n" +
+                "        \"user\": {\n" +
+                "            \"uid\": \"admin\",\n" +
+                "            \"username\": \"admin\"\n" +
+                "        }\n" +
+                "    }\n" +
+                "}");
+
+        JSONObject jsonObject2 = JSONObject.fromObject("{\n" +
+                "    \"apiVersion\":\"authentication.k8s.io/v1beta1\",\n" +
+                "    \"kind\":\"TokenReview\",\n" +
+                "    \"status\":{\n" +
+                "        \"authenticated\":true,\n" +
+                "        \"user\":{\n" +
+                "            \"uid\":\"admin\",\n" +
+                "            \"username\":\"admin\"\n" +
+                "        }\n" +
+                "    },\n" +
+                "    \"token\":\"testToken\"\n" +
+                "}");
+        KubesphereTokenReviewResponse response = new KubesphereTokenReviewResponse(jsonObject1,"testToken");
+
+        assertEquals(response.getKind(),"TokenReview");
+        assertEquals(response.getApiVersion(),"authentication.k8s.io/v1beta1");
+        assertEquals(response.getToken(),"testToken");
+        assertEquals(response.getStatus().getAuthenticated(),true);
+        assertEquals(response.getStatus().getUser().getUsername(),"admin");
+        assertEquals(response.getStatus().getUser().getUid(),"admin");
+        assertEquals(JSONObject.fromObject(response),jsonObject2);
     }
 }
