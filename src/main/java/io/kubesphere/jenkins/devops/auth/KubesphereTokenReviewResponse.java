@@ -29,10 +29,6 @@ public class KubesphereTokenReviewResponse {
             TokenStatus.UserInfo userInfo = new TokenStatus.UserInfo();
             userInfo.username = userObject.getString("username");
             userInfo.uid = userObject.getString("uid");
-            userInfo.description = userObject.getString("description");
-            userInfo.email = userObject.getString("email");
-            userInfo.lastLoginTime = userObject.getString("last_login_time");
-            userInfo.status = userObject.getInt("status");
             status.setUser(userInfo);
         }
         this.status = status;
@@ -96,51 +92,12 @@ public class KubesphereTokenReviewResponse {
 
             private String uid;
 
-            private String description;
-
-            private String email;
-
-            private String lastLoginTime;
-
-            private Integer status;
-
-            public String getDescription() {
-                return description;
-            }
-
-            public String getEmail() {
-                return email;
-            }
-
-            public void setLastLoginTime(String lastLoginTime) {
-                this.lastLoginTime = lastLoginTime;
-            }
-
-            public Integer getStatus() {
-                return status;
-            }
-
             public String getUid() {
                 return uid;
             }
 
             public String getUsername() {
                 return username;
-            }
-
-            public void setDescription(String description) {
-                this.description = description;
-            }
-
-            public void setEmail(String email) {
-                this.email = email;
-            }
-
-            public String getLastLoginTime() {
-                return lastLoginTime;
-            }
-            public void setStatus(Integer status) {
-                this.status = status;
             }
 
             public void setUid(String uid) {
