@@ -30,6 +30,10 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
 
     private transient Map<String, KubesphereApiTokenAuthenticator.CacheEntry<KubesphereTokenReviewResponse>> tokenAuthCache = null;
 
+    public KubesphereTokenAuthGlobalConfiguration(){
+        this.load();
+    }
+
     public static KubesphereTokenAuthGlobalConfiguration get() {
         return GlobalConfiguration.all().get(KubesphereTokenAuthGlobalConfiguration.class);
     }
