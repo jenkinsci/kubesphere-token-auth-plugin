@@ -65,7 +65,7 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
         return null;
     }
 
-    private static KubesphereTokenReviewResponse getReviewResponse(String username,String token) throws IOException{
+    public static KubesphereTokenReviewResponse getReviewResponse(String username,String token) throws IOException{
         KubesphereTokenAuthGlobalConfiguration authGlobalConfiguration = KubesphereTokenAuthGlobalConfiguration.get();
         if (authGlobalConfiguration.getCacheConfiguration() != null){
             synchronized (authGlobalConfiguration){
