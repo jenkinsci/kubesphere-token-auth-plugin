@@ -31,7 +31,7 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
     @Override
     public Authentication authenticate(HttpServletRequest req, HttpServletResponse rsp, String username, String password) throws ServletException {
         // attempt to authenticate as API token
-        User u = User.getById(username, false);
+        User u = User.getById(username, true);
         if (!KubesphereTokenAuthGlobalConfiguration.get().isEnabled()){
             return null;
         }
