@@ -50,7 +50,6 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
                 try {
                     UserDetails userDetails = u.getUserDetailsForImpersonation();
                     auth = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), "", userDetails.getAuthorities());
-
                     SecurityListener.fireAuthenticated(userDetails);
                 } catch (UsernameNotFoundException x) {
                     // The token was valid, but the impersonation failed. This token is clearly not his real password,
