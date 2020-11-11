@@ -12,7 +12,6 @@ public class KubesphereTokenReviewResponse {
     private String token;
 
     public KubesphereTokenReviewResponse(){
-
     }
 
     public KubesphereTokenReviewResponse(JSONObject jsonObject,String token){
