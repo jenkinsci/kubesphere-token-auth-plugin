@@ -9,7 +9,7 @@
     </parent>
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>kubesphere-token-auth</artifactId>
-    <version>1.2-SNAPSHOT</version>
+    <version>1.6-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <properties>
         <!-- Baseline Jenkins version you use to build the plugin. Users must have this version or newer to run. -->
@@ -41,6 +41,11 @@
 
 
     <developers>
+      <developer>
+        <id>shaowenchen</id>
+        <name>shaowenchen</name>
+        <email>mail@chenshaowen.com</email>
+      </developer>
       <developer>
         <id>runzexia</id>
         <name>runzexia</name>

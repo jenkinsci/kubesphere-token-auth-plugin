@@ -45,7 +45,6 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
                 try {
                     UserDetails userDetails = u.getUserDetailsForImpersonation();
                     auth = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), "", userDetails.getAuthorities());
-
                     SecurityListener.fireAuthenticated(userDetails);
 
                 } catch (UsernameNotFoundException x) {
@@ -117,7 +116,7 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
         client.setConnectTimeout(30, TimeUnit.SECONDS);
         client.setReadTimeout(60, TimeUnit.SECONDS);
         Request.Builder builder = new Request.Builder();
-        builder.url(baseUrl+"apis/account.kubesphere.io/v1alpha1/authenticate");
+        builder.url(baseUrl+"oauth/authenticate");
         KubesphereTokenReviewRequest reviewRequest = new KubesphereTokenReviewRequest(token);
         builder.post(RequestBody.create(JSON,JSONObject.fromObject(reviewRequest).toString()));
         Response response = client.newCall(builder.build()).execute();
