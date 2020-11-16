@@ -56,6 +56,7 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
                     throw new ServletException(x);
                 }
                 req.setAttribute(KubesphereApiTokenAuthenticator.class.getName(), true);
+
                 return auth;
             }
         }catch (IOException e){
