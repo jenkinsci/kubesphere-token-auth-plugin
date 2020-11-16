@@ -7,11 +7,13 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import jenkins.model.GlobalConfiguration;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.verb.POST;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -57,7 +59,9 @@ public class KubesphereTokenAuthGlobalConfiguration  extends GlobalConfiguration
         this.tokenAuthCache = tokenAuthCache;
     }
 
+    @POST
     public FormValidation doVerifyConnect(@QueryParameter String server) {
+        Jenkins.get().checkPermission(Jenkins.ADMINISTER);
         try {
             KubesphereTokenReviewResponse reviewResponse = KubesphereApiTokenAuthenticator.
                     getReviewResponseFromApiServer(serverToUrl(server),"mock","mock");

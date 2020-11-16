@@ -19,9 +19,8 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.util.logging.Level.WARNING;
 
 @Extension
 public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
@@ -30,34 +29,38 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
 
     @Override
     public Authentication authenticate(HttpServletRequest req, HttpServletResponse rsp, String username, String password) throws ServletException {
-        // attempt to authenticate as API token
-        User u = User.getById(username, true);
         if (!KubesphereTokenAuthGlobalConfiguration.get().isEnabled()){
             return null;
         }
+
+        // attempt to authenticate as API token
+        User u = User.getById(username, true);
         if (u == null){
             return null;
         }
+
         try {
             KubesphereTokenReviewResponse reviewResponse = getReviewResponse(username,password);
-            if (reviewResponse.getStatus().getAuthenticated() && reviewResponse.getStatus().getUser().getUsername().equals(username)){
+            if (reviewResponse == null || reviewResponse.getStatus() == null) {
+                return null;
+            }
+
+            if (reviewResponse.getStatus().getAuthenticated() && username.equals(reviewResponse.getStatus().getUser().getUsername())){
                 Authentication auth;
                 try {
                     UserDetails userDetails = u.getUserDetailsForImpersonation();
                     auth = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), "", userDetails.getAuthorities());
                     SecurityListener.fireAuthenticated(userDetails);
-
                 } catch (UsernameNotFoundException x) {
                     // The token was valid, but the impersonation failed. This token is clearly not his real password,
                     // so there's no point in continuing the request processing. Report this error and abort.
-                    LOGGER.log(WARNING, "API token matched for user "+username+" but the impersonation failed",x);
+                    LOGGER.log(Level.WARNING, "API token matched for user "+username+" but the impersonation failed",x);
                     throw new ServletException(x);
                 } catch (DataAccessException x) {
                     throw new ServletException(x);
                 }
                 return auth;
             }
-
         }catch (IOException e){
             return null;
         }
@@ -90,7 +93,12 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
             }
             KubesphereTokenReviewResponse reviewResponse = getReviewResponseFromApiServer(
                     KubesphereTokenAuthGlobalConfiguration.get().getServerUrl(),username,token);
-            if (reviewResponse.getStatus().getAuthenticated() && (reviewResponse.getStatus().getUser().getUsername().equals(username))){
+            KubesphereTokenReviewResponse.TokenStatus status = null;
+            if ((status = reviewResponse.getStatus()) == null) {
+                return null;
+            }
+
+            if (status.getAuthenticated() && (username.equals(status.getUser().getUsername()))){
                 synchronized (authGlobalConfiguration){
                     Map<String,CacheEntry<KubesphereTokenReviewResponse>>
                             tokenCache = authGlobalConfiguration.getTokenAuthCache();
@@ -111,22 +119,23 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
     }
 
     public static KubesphereTokenReviewResponse getReviewResponseFromApiServer(String baseUrl,String username,String token) throws IOException{
-
         OkHttpClient client = new OkHttpClient();
         client.setConnectTimeout(30, TimeUnit.SECONDS);
         client.setReadTimeout(60, TimeUnit.SECONDS);
         Request.Builder builder = new Request.Builder();
         builder.url(baseUrl+"oauth/authenticate");
+
         KubesphereTokenReviewRequest reviewRequest = new KubesphereTokenReviewRequest(token);
+        LOGGER.log(Level.FINE, "Request payload for auth, " + JSONObject.fromObject(reviewRequest).toString());
         builder.post(RequestBody.create(JSON,JSONObject.fromObject(reviewRequest).toString()));
         Response response = client.newCall(builder.build()).execute();
-        JSONObject responseObject = JSONObject.fromObject(response.body().string());
 
-        KubesphereTokenReviewResponse reviewResponse = new KubesphereTokenReviewResponse(responseObject,token);
+        String responseBodyText = response.body().string();
+        LOGGER.log(Level.FINE, "Response body from API gateway, " + responseBodyText);
+        JSONObject responseObject = JSONObject.fromObject(responseBodyText);
 
-        return reviewResponse;
+        return new KubesphereTokenReviewResponse(responseObject,token);
     }
-
 
     public static class CacheEntry<T> {
         private final long expires;
@@ -176,7 +185,8 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(BasicHeaderApiTokenAuthenticator.class.getName());
+    private static final Logger
+            LOGGER = Logger.getLogger(BasicHeaderApiTokenAuthenticator.class.getName());
 }
 
 

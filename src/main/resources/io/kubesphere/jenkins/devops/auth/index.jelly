@@ -1,8 +1,4 @@
-
 <?jelly escape-by-default='true'?>
-<!--
-  This view is used to render the installed plugins page.
--->
 <div>
-    Auth with kubesphere API Aateway
+    Kubesphere auth use token with kubesphere API-Gateway
 </div>
