@@ -3,7 +3,6 @@ package io.kubesphere.jenkins.devops.auth;
 import com.squareup.okhttp.*;
 import hudson.Extension;
 import hudson.model.User;
-import jenkins.security.BasicHeaderApiTokenAuthenticator;
 import jenkins.security.BasicHeaderAuthenticator;
 import jenkins.security.SecurityListener;
 import net.sf.json.JSONObject;
@@ -35,13 +34,10 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
 
         // attempt to authenticate as API token
         User u = User.getById(username, true);
-        if (u == null){
-            return null;
-        }
-
         try {
             KubesphereTokenReviewResponse reviewResponse = getReviewResponse(username,password);
             if (reviewResponse == null || reviewResponse.getStatus() == null) {
+                LOGGER.severe("cannot get the review response or status is null by " + username);
                 return null;
             }
 
@@ -49,7 +45,7 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
                 Authentication auth;
                 try {
                     UserDetails userDetails = u.getUserDetailsForImpersonation();
-                    auth = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), "", userDetails.getAuthorities());
+                    auth = new UsernamePasswordAuthenticationToken(userDetails.getUsername(), userDetails.getPassword(), userDetails.getAuthorities());
                     SecurityListener.fireAuthenticated(userDetails);
                 } catch (UsernameNotFoundException x) {
                     // The token was valid, but the impersonation failed. This token is clearly not his real password,
@@ -59,10 +55,12 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
                 } catch (DataAccessException x) {
                     throw new ServletException(x);
                 }
+                req.setAttribute(KubesphereApiTokenAuthenticator.class.getName(), true);
+
                 return auth;
             }
         }catch (IOException e){
-            return null;
+            LOGGER.log(Level.SEVERE, "errors when auth with ks", e);
         }
         return null;
     }
@@ -94,7 +92,7 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
             KubesphereTokenReviewResponse reviewResponse = getReviewResponseFromApiServer(
                     KubesphereTokenAuthGlobalConfiguration.get().getServerUrl(),username,token);
             KubesphereTokenReviewResponse.TokenStatus status = null;
-            if ((status = reviewResponse.getStatus()) == null) {
+            if (reviewResponse == null || (status = reviewResponse.getStatus()) == null) {
                 return null;
             }
 
@@ -132,9 +130,13 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
 
         String responseBodyText = response.body().string();
         LOGGER.log(Level.FINE, "Response body from API gateway, " + responseBodyText);
-        JSONObject responseObject = JSONObject.fromObject(responseBodyText);
+        if (response.code() == 200) {
+            JSONObject responseObject = JSONObject.fromObject(responseBodyText);
 
-        return new KubesphereTokenReviewResponse(responseObject,token);
+            return new KubesphereTokenReviewResponse(responseObject,token);
+        } else {
+            return new KubesphereTokenReviewResponse();
+        }
     }
 
     public static class CacheEntry<T> {
@@ -185,8 +187,7 @@ public class KubesphereApiTokenAuthenticator extends BasicHeaderAuthenticator {
         }
     }
 
-    private static final Logger
-            LOGGER = Logger.getLogger(BasicHeaderApiTokenAuthenticator.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(KubesphereApiTokenAuthenticator.class.getName());
 }
 
 
